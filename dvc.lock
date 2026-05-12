@@ -1,0 +1,109 @@
+schema: '2.0'
+stages:
+  data_preprocess:
+    cmd: python src/data/data_preprocess.py
+    deps:
+    - path: src/data/data_preprocess.py
+      hash: md5
+      md5: e93131c6299b8b1eb0a8dc8b70edd48b
+      size: 5501
+    params:
+      params.yaml:
+        data_preprocess.random_state: 30
+        data_preprocess.test_size: 0.4
+    outs:
+    - path: data/raw
+      hash: md5
+      md5: fd877de4b67b0b00bbeaf9cab5395b69.dir
+      size: 827973
+      nfiles: 2
+  make_dataset:
+    cmd: python src/data/make_dataset.py
+    deps:
+    - path: data/raw/test.csv
+      hash: md5
+      md5: ddeab243f59971214578a4ed7ca5c3e8
+      size: 331035
+    - path: data/raw/train.csv
+      hash: md5
+      md5: cfb262b2e052ba9a9c3c98c8edb6a1ff
+      size: 496938
+    - path: src/data/make_dataset.py
+      hash: md5
+      md5: 93242e722b2f908e24fa85fa41d1f2d7
+      size: 3522
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: 032043ab4122f970622044b9a1ad8f04.dir
+      size: 615862
+      nfiles: 2
+  build_features:
+    cmd: python src/features/build_features.py
+    deps:
+    - path: data/processed/test_processed.csv
+      hash: md5
+      md5: 37e43bd408b23e9e395c68de33faa355
+      size: 246064
+    - path: data/processed/train_processed.csv
+      hash: md5
+      md5: 50ce7aaf83c45405b1d12be93fa8ba3a
+      size: 369798
+    - path: src/features/build_features.py
+      hash: md5
+      md5: c8ed387494c551516175a98f5da47611
+      size: 8422
+    params:
+      params.yaml:
+        build_features.max_features: 1000
+    outs:
+    - path: data/feature
+      hash: md5
+      md5: 2896f2f14173dfda467583c4a4e7c9b6.dir
+      size: 20814392
+      nfiles: 3
+  model_building:
+    cmd: python src/models/model_building.py
+    deps:
+    - path: data/feature/train_bow.csv
+      hash: md5
+      md5: 057a70446f27523cd715c96cf09200de
+      size: 12470569
+    - path: src/models/model_building.py
+      hash: md5
+      md5: c32457e60e97200babe5913f79dd81fd
+      size: 5513
+    params:
+      params.yaml:
+        model_building.C: 1
+        model_building.penalty: l2
+        model_building.solver: liblinear
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: e3c08f69b9294f9386e412c6b05ed28b
+      size: 8700
+  model_evaluation:
+    cmd: python -m src.models.model_evaluation
+    deps:
+    - path: data/feature/test_bow.csv
+      hash: md5
+      md5: 1b72bf6fb118a9e481995cb3ed1338d5
+      size: 8316347
+    - path: models/model.pkl
+      hash: md5
+      md5: e3c08f69b9294f9386e412c6b05ed28b
+      size: 8700
+    - path: src/models/model_evaluation.py
+      hash: md5
+      md5: a5f70380cac3234c5098ef6d267cbfb2
+      size: 8289
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: 0d116f1e1574c893715e5664c297878c
+      size: 126
+    - path: reports/confusion_matrix.npy
+      hash: md5
+      md5: b0b02a8151ad727584e6184bed0cccd6
+      size: 160
