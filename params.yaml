@@ -1,9 +1,9 @@
 data_preprocess:
-  test_size : 0.4
-  random_state: 30
+  test_size : 0.2
+  random_state: 50
 
 build_features:
-  max_features: 1000
+  max_features: 5000
 
 model_building:
   C: 1
@@ -11,6 +11,6 @@ model_building:
   penalty: l2
 
 model_evaluation:
-  model_path : models/model.pkl
+  model_path: models/model.pkl
   test_data_path: data/feature/test_bow.csv
-  metrics_path: metrics.json
+  metrics_path: reports/metrics.json

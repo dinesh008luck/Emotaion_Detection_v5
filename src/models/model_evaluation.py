@@ -26,7 +26,7 @@ from sklearn.metrics import (
     classification_report,
 )
 from sklearn.linear_model import LogisticRegression
-from src.visualization.visualize import save_confusion_matrix
+# from src.visualization.visualize import save_confusion_matrix
 
 
 # ---------------- LOGGING CONFIG ---------------- #
@@ -141,23 +141,7 @@ def evaluate_model(
     X_test: np.ndarray,
     y_test: np.ndarray,
 ) -> Dict[str, float]:
-    """
-    Generate predictions and compute evaluation metrics.
 
-    Metrics computed: accuracy, precision, recall, f1, AUC-ROC.
-    Also logs the confusion matrix and full classification report.
-
-    Args:
-        clf: Fitted classifier with predict and predict_proba methods.
-        X_test: Test feature matrix.
-        y_test: True test labels.
-
-    Returns:
-        Dictionary of metric names to rounded float values.
-
-    Raises:
-        ValueError: If the classifier does not support predict_proba (needed for AUC).
-    """
     logger.info("Running predictions on test data...")
 
     if not hasattr(clf, "predict_proba"):
@@ -166,30 +150,106 @@ def evaluate_model(
             "which is required for AUC-ROC computation."
         )
 
+    # ---------------- PREDICTIONS ---------------- #
+
     y_pred = clf.predict(X_test)
+
     y_pred_proba = clf.predict_proba(X_test)[:, 1]
 
+    # ---------------- METRICS ---------------- #
+
     metrics: Dict[str, float] = {
-        "accuracy":  round(accuracy_score(y_test, y_pred), 4),
-        "precision": round(precision_score(y_test, y_pred, zero_division=0), 4),
-        "recall":    round(recall_score(y_test, y_pred, zero_division=0), 4),
-        "f1_score":  round(f1_score(y_test, y_pred, zero_division=0), 4),
-        "auc_roc":   round(roc_auc_score(y_test, y_pred_proba), 4),
+        "accuracy": round(
+            accuracy_score(y_test, y_pred),
+            4,
+        ),
+
+        "precision": round(
+            precision_score(
+                y_test,
+                y_pred,
+                zero_division=0,
+            ),
+            4,
+        ),
+
+        "recall": round(
+            recall_score(
+                y_test,
+                y_pred,
+                zero_division=0,
+            ),
+            4,
+        ),
+
+        "f1_score": round(
+            f1_score(
+                y_test,
+                y_pred,
+                zero_division=0,
+            ),
+            4,
+        ),
+
+        "auc_roc": round(
+            roc_auc_score(
+                y_test,
+                y_pred_proba,
+            ),
+            4,
+        ),
     }
 
-    # Log a human-readable summary
+    # ---------------- CLASSIFICATION REPORT ---------------- #
+
+    report = classification_report(
+        y_test,
+        y_pred,
+        zero_division=0,
+    )
+
+    logger.info(
+        "Classification Report:\n%s",
+        report,
+    )
+
+    # ---------------- CONFUSION MATRIX ---------------- #
+
+    cm = confusion_matrix(
+        y_test,
+        y_pred,
+    )
+
+    logger.info(
+        "Confusion Matrix:\n%s",
+        cm,
+    )
+
+    os.makedirs(
+        "reports",
+        exist_ok=True,
+    )
+
+    np.save(
+        "reports/confusion_matrix.npy",
+        cm,
+    )
+
+    logger.info(
+        "Confusion matrix array saved."
+    )
+
+    # ---------------- METRIC LOGGING ---------------- #
+
     logger.info("--- Evaluation Metrics ---")
+
     for name, value in metrics.items():
-        logger.info("  %-12s: %.4f", name, value)
+        logger.info(
+            "  %-12s: %.4f",
+            name,
+            value,
+        )
 
-    cm = confusion_matrix(y_test, y_pred)
-    logger.info("Confusion Matrix:\n%s", cm)
-    os.makedirs("reports", exist_ok=True)
-
-    np.save("reports/confusion_matrix.npy", cm)
-
-    logger.info("Confusion matrix array saved.")
-    
     return metrics
 
 
@@ -213,6 +273,17 @@ def save_metrics(metrics: Dict[str, float], output_path: str) -> None:
 
     logger.info("Metrics saved to: %s", output_path)
 
+def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
+    """Save the model run ID and path to a JSON file."""
+    try:
+        model_info = {'run_id': run_id, 'model_path': model_path}
+        with open(file_path, 'w') as file:
+            json.dump(model_info, file, indent=4)
+        logger.debug('Model info saved to %s', file_path)
+    except Exception as e:
+        logger.error('Error occurred while saving the model info: %s', e)
+        raise
+
 
 def main() -> None:
     """Run the end-to-end model evaluation pipeline."""
@@ -225,7 +296,9 @@ def main() -> None:
         clf = load_model(params["model_path"])
         X_test, y_test = load_data(params["test_data_path"])
 
-        with mlflow.start_run():
+        with mlflow.start_run(
+        run_name="logistic_regression_evaluation"
+        ):
 
             metrics = evaluate_model(
                 clf,
@@ -242,11 +315,6 @@ def main() -> None:
             mlflow.log_param(
                 "model_type",
                 "LogisticRegression"
-            )
-
-            mlflow.sklearn.log_model(
-                clf,
-                artifact_path="model"
             )
 
             # ---------------- LOG METRICS ---------------- #

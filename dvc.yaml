@@ -40,10 +40,16 @@ stages:
   model_evaluation:
     cmd: python -m src.models.model_evaluation
     deps:
-    - data/feature/test_bow.csv
-    - models/model.pkl
-    - src/models/model_evaluation.py
+      - data/feature/test_bow.csv
+      - models/model.pkl
+      - src/models/model_evaluation.py
     outs:
-    - reports/confusion_matrix.npy
+      - reports/confusion_matrix.npy
     metrics:
-    - metrics.json
+      - reports/metrics.json
+  model_registration:
+    cmd: python -m src.models.model_registration
+    deps:
+      - src/models/model_registration.py
+      - models/model.pkl
+      - reports/metrics.json
