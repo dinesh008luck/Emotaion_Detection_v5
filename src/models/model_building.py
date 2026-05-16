@@ -142,8 +142,9 @@ def train_model(
         C=c_value,
         solver=solver,
         penalty=penalty,
+        class_weight="balanced",
         random_state=42,
-        max_iter=1000,
+        max_iter=2000,
     )
 
     clf.fit(X_train, y_train)
