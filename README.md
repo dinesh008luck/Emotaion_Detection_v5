@@ -295,11 +295,6 @@ This project helped in understanding:
 * End-to-end machine learning engineering
 
 ---
-
-# Author
-
-Dinesh Kumar
-
 Machine Learning & MLOps Enthusiast
 
 Project Organization
@@ -354,3 +349,8 @@ Project Organization
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+
+# Author
+
+Dinesh Kumar
