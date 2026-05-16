@@ -8,6 +8,8 @@ import dagshub
 import mlflow
 import mlflow.sklearn
 
+from mlflow.tracking import MlflowClient
+
 
 # ---------------- DAGSHUB + MLFLOW ---------------- #
 
@@ -34,11 +36,10 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+MODEL_NAME = "emotion_detection_logistic_regression"
+
 
 def load_metrics(metrics_path: str):
-    """
-    Load evaluation metrics.
-    """
 
     with open(metrics_path, "r") as f:
         metrics = json.load(f)
@@ -47,9 +48,6 @@ def load_metrics(metrics_path: str):
 
 
 def load_model(model_path: str):
-    """
-    Load trained sklearn model.
-    """
 
     with open(model_path, "rb") as f:
         model = pickle.load(f)
@@ -61,9 +59,7 @@ def register_model():
 
     try:
 
-        logger.info(
-            "Starting model registration..."
-        )
+        logger.info("Starting model registration...")
 
         metrics = load_metrics(
             "reports/metrics.json"
@@ -73,7 +69,12 @@ def register_model():
             "models/model.pkl"
         )
 
-        f1_score = metrics["f1_score"]
+        f1_score = metrics.get("f1_score")
+
+        if f1_score is None:
+            raise ValueError(
+                "f1_score not found in metrics.json"
+            )
 
         logger.info(
             "Current F1 Score: %.4f",
@@ -91,7 +92,7 @@ def register_model():
                 model_info = mlflow.sklearn.log_model(
                     sk_model=model,
                     artifact_path="model",
-                    registered_model_name="emotion_detection_logistic_regression",
+                    registered_model_name=MODEL_NAME,
                 )
 
                 mlflow.log_metrics(metrics)
@@ -105,6 +106,45 @@ def register_model():
                     model_info.model_uri,
                 )
 
+            # ---------------- CLIENT ---------------- #
+
+            client = MlflowClient()
+
+            # ---------------- GET LATEST VERSION ---------------- #
+
+            latest_versions = client.search_model_versions(
+                f"name='{MODEL_NAME}'"
+            )
+
+            latest_version = max(
+                int(v.version)
+                for v in latest_versions
+            )
+
+            logger.info(
+                "Latest model version: %s",
+                latest_version,
+            )
+
+            # ---------------- MOVE TO STAGING ---------------- #
+
+            client.transition_model_version_stage(
+                name=MODEL_NAME,
+                version=latest_version,
+                stage="Staging",
+                archive_existing_versions=True,
+            )
+
+            logger.info(
+                "Model version %s moved to STAGING.",
+                latest_version,
+            )
+            mlflow.set_tags({
+                "model_type": "logistic_regression",
+                "project": "emotion_detection",
+                "vectorizer": "LogisticRegression",
+                "developer": "Dinesh"
+            })
         else:
 
             logger.warning(
