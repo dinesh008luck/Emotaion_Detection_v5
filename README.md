@@ -248,7 +248,7 @@ Completed:
 
 # Future Improvements
 
-Planned next steps:
+Planning for next steps:
 
 * Hyperparameter tuning
 * Dockerization
